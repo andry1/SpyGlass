@@ -48,7 +48,7 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
 
   /**
    * Restart from survivable exceptions by creating a new scanner.
-   * 
+   *
    * @param firstRow
    * @throws IOException
    */
@@ -111,7 +111,7 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
 
   /**
    * Build the scanner. Not done in constructor to allow for extension.
-   * 
+   *
    * @throws IOException
    */
   public void init() throws IOException {
@@ -138,7 +138,7 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
 
   /**
    * @return ImmutableBytesWritable
-   * 
+   *
    * @see org.apache.hadoop.mapred.RecordReader#createKey()
    */
   @Override
@@ -148,7 +148,7 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
 
   /**
    * @return RowResult
-   * 
+   *
    * @see org.apache.hadoop.mapred.RecordReader#createValue()
    */
   @Override
@@ -249,9 +249,9 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
           } else {
             key.set(result.getRow());
           }
-          
+
           lastSuccessfulRow = key.get();
-          Writables.copyWritable(result, value);
+          result.copyFrom(value);
           return true;
         }
         return false;
@@ -271,11 +271,11 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
 
     case GET_LIST: {
       LOG.debug(String.format("INTO next with GET LIST and Key (%s)", Bytes.toString(nextKey)));
-      
+
       if (versions == 1) {
         if (nextKey != null) {
           LOG.debug(String.format("Processing Key (%s)", Bytes.toString(nextKey)));
-          
+
           Get theGet = new Get(nextKey);
           theGet.setMaxVersions(versions);
 
@@ -292,9 +292,9 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
             } else {
               nextKey = null;
             }
-            
+
             LOG.debug(String.format("=> Picked a new Key (%s)", Bytes.toString(nextKey)));
-            
+
             // Write the result
             if( useSalt) {
               key.set( HBaseSalter.delSaltPrefix(result.getRow()));
@@ -302,33 +302,33 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
               key.set(result.getRow());
             }
             lastSuccessfulRow = key.get();
-            Writables.copyWritable(result, value);
-            
+            result.copyFrom(value);
+
             return true;
           } else {
             LOG.debug(" Key ("+ Bytes.toString(nextKey)+ ") return an EMPTY result. Get ("+theGet.getId()+")" ); //alg0
-            
+
             String newKey;
             while((newKey = keyList.pollFirst()) != null) {
               LOG.debug("WHILE NEXT Key => " + newKey);
 
               nextKey = (newKey == null || newKey.length() == 0) ? null : Bytes
                   .toBytes(newKey);
-              
+
               if( nextKey == null ) {
                 LOG.error("BOMB! BOMB! BOMB!");
-                continue; 
+                continue;
               }
-              
+
               if( ! this.htable.exists( new Get(nextKey) ) ) {
                 LOG.debug(String.format("Key (%s) Does not exist in Table (%s)", Bytes.toString(nextKey), Bytes.toString(this.htable.getTableName()) ));
-                continue; 
+                continue;
               } else { break; }
             }
-            
+
             nextKey = (newKey == null || newKey.length() == 0) ? null : Bytes
                 .toBytes(newKey);
-            
+
             LOG.debug("Final New Key => " + Bytes.toString(nextKey));
 
             return next(key, value);
@@ -338,7 +338,7 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
           return false;
         }
       } else {
-        if (resultVector != null && resultVector.size() != 0) { 
+        if (resultVector != null && resultVector.size() != 0) {
           LOG.debug(String.format("+ Version (%s), Result VECTOR <%s>", versions, resultVector ) );
 
           List<KeyValue> resultKeyValue = resultVector.remove(resultVector.size() - 1);
@@ -352,23 +352,23 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
             key.set(result.getRow());
           }
           lastSuccessfulRow = key.get();
-          Writables.copyWritable(result, value);
+          result.copyFrom(value);
 
           return true;
         } else {
           if (nextKey != null) {
             LOG.debug(String.format("+ Processing Key (%s)", Bytes.toString(nextKey)));
-            
+
             Get theGet = new Get(nextKey);
             theGet.setMaxVersions(versions);
 
             Result resultAll = this.htable.get(theGet);
-            
+
             if( resultAll != null && (! resultAll.isEmpty())) {
               List<KeyValue> keyValeList = resultAll.list();
 
               keyValueMap = new HashMap<Long, List<KeyValue>>();
-              
+
               LOG.debug(String.format("+ Key (%s) Versions (%s) Val;ute map <%s>", Bytes.toString(nextKey), versions, keyValueMap));
 
               for (KeyValue keyValue : keyValeList) {
@@ -408,38 +408,38 @@ public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
                 key.set(result.getRow());
               }
               lastSuccessfulRow = key.get();
-              Writables.copyWritable(result, value);
+              result.copyFrom(value);
               return true;
             } else {
               LOG.debug(String.format("+ Key (%s) return an EMPTY result. Get (%s)", Bytes.toString(nextKey), theGet.getId()) ); //alg0
-              
+
               String newKey;
-              
+
               while( (newKey = keyList.pollFirst()) != null ) {
                 LOG.debug("+ WHILE NEXT Key => " + newKey);
 
                 nextKey = (newKey == null || newKey.length() == 0) ? null : Bytes
                     .toBytes(newKey);
-                
+
                 if( nextKey == null ) {
                   LOG.error("+ BOMB! BOMB! BOMB!");
-                  continue; 
+                  continue;
                 }
-                
+
                 if( ! this.htable.exists( new Get(nextKey) ) ) {
                   LOG.debug(String.format("+ Key (%s) Does not exist in Table (%s)", Bytes.toString(nextKey), Bytes.toString(this.htable.getTableName()) ));
-                  continue; 
+                  continue;
                 } else { break; }
               }
-              
+
               nextKey = (newKey == null || newKey.length() == 0) ? null : Bytes
                   .toBytes(newKey);
-              
+
               LOG.debug("+ Final New Key => " + Bytes.toString(nextKey));
 
               return next(key, value);
             }
-            
+
           } else {
             return false;
           }

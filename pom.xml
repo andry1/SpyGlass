@@ -11,7 +11,7 @@
     <name>Cascading and Scalding wrapper for HBase with advanced features</name>
     <groupId>parallelai</groupId>
     <artifactId>parallelai.spyglass</artifactId>
-    <version>2.10_0.10_4.3</version>
+    <version>2.10_0.11_4.3</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -29,18 +29,18 @@
         <maven-scala-plugin.version>2.15.2</maven-scala-plugin.version>
         <maven.surefire.plugin.version>2.12.3</maven.surefire.plugin.version>
 
-        <cdh.version>cdh4.5.0</cdh.version>
+        <cdh.version>cdh5.1.0</cdh.version>
 
-        <hadoop.version>2.0.0-${cdh.version}</hadoop.version>
-        <hadoop.core.version>2.0.0-mr1-${cdh.version}</hadoop.core.version>
-        <hbase.version>0.94.6-${cdh.version}</hbase.version>
+        <hadoop.version>2.3.0-${cdh.version}</hadoop.version>
+        <hadoop.core.version>2.3.0-mr1-${cdh.version}</hadoop.core.version>
+        <hbase.version>0.98.1-${cdh.version}</hbase.version>
 
         <!-- Scala/Scalding/Cascading properties -->
         <!-- can be 2.9.3 and 2.10.2 -->
-        <scala.version>2.10.3</scala.version>
+        <scala.version>2.10.4</scala.version>
         <!-- 2.10 for Scala 2.10.2 and 2.9.3 for Scala version 2.9.3 -->
         <scalding.scala.version>2.10</scalding.scala.version>
-        <scalding.version>0.10.0</scalding.version>
+        <scalding.version>0.11.1</scalding.version>
         <scalatest.version>1.9.1</scalatest.version>
 
         <!-- 2.1.1 for Scala 2.10.2 and 1.12.4.1 for Scala 2.9.3-->
@@ -61,8 +61,8 @@
             <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
         </repository>
         <repository>
-            <id>cloudera-cdh4</id>
-            <name>Cloudera CDH4</name>
+            <id>cloudera-cdh5</id>
+            <name>Cloudera CDH5</name>
             <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
         </repository>
         <repository>
@@ -141,22 +141,20 @@
         <!-- Hadoop -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-core</artifactId>
+            <artifactId>hadoop-client</artifactId>
             <version>${hadoop.core.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <version>${hadoop.version}</version>
-        </dependency>
-
         <!-- HBase -->
         <dependency>
             <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase</artifactId>
+            <artifactId>hbase-server</artifactId>
             <version>${hbase.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-client</artifactId>
+            <version>${hbase.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -178,7 +176,7 @@
             <groupId>com.twitter.elephantbird</groupId>
             <artifactId>elephant-bird-hadoop-compat</artifactId>
             <version>4.1</version>
-        </dependency> 
+        </dependency>
 
         <!-- Testing dependencies (ScalaSpec / ScalaTest / JUnit) -->
         <dependency>

@@ -59,7 +59,7 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
   /** Field hBaseAdmin */
   private transient HBaseAdmin hBaseAdmin;
- 
+
   /** Field hostName */
   private String quorumNames;
   /** Field tableName */
@@ -138,7 +138,7 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
     return new Path(SCHEME + ":/" + tableName.replaceAll(":", "_"));
   }
 
-  protected HBaseAdmin getHBaseAdmin(JobConf conf) throws MasterNotRunningException, ZooKeeperConnectionException {
+  protected HBaseAdmin getHBaseAdmin(JobConf conf) throws IOException {
     if (hBaseAdmin == null) {
       Configuration hbaseConf = HBaseConfiguration.create(conf);
       hBaseAdmin = new HBaseAdmin(hbaseConf);
@@ -179,7 +179,7 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
     for( SinkConfig sc : sinkConfigList) {
         sc.configure(conf);
     }
-    
+
     super.sinkConfInit(process, conf);
   }
 
@@ -258,7 +258,7 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
     // TODO: Make this a bit smarter to store table name per flow.
 //    process.getID();
-//    
+//
 //    super.getFullIdentifier(conf);
 
     switch(splitType) {
@@ -273,11 +273,11 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
         default:
             LOG.error("Unknown Split Type : " + splitType);
     }
-    
+
     for( SourceConfig sc : sourceConfigList) {
       sc.configure(conf);
     }
-    
+
     super.sourceConfInit(process, conf);
   }
 
@@ -312,7 +312,7 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
     result = 31 * result + (tableName != null ? tableName.hashCode() : 0);
     return result;
   }
-  
+
   private static class SourceConfig implements Serializable {
     public String tableName = null;
     public SourceMode sourceMode = SourceMode.SCAN_ALL;
@@ -322,7 +322,7 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
     public int versions = 1;
     public boolean useSalt = false;
     public String prefixList = null;
-    
+
     public void configure(Configuration jobConf) {
       switch( sourceMode ) {
         case SCAN_RANGE:
@@ -331,24 +331,24 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
 	      	  stopKey = startKey;
 	      	  startKey = t;
 	        }
-            
+
           jobConf.set( String.format(HBaseConstants.SOURCE_MODE, tableName), sourceMode.toString());
-          
+
           if( startKey != null && startKey.length() > 0 )
             jobConf.set( String.format(HBaseConstants.START_KEY, tableName), startKey);
-          
+
           if( stopKey != null && stopKey.length() > 0 )
             jobConf.set( String.format(HBaseConstants.STOP_KEY, tableName), stopKey);
-          
+
           // Added for Salting
           jobConf.setBoolean(String.format(HBaseConstants.USE_SALT, tableName), useSalt);
           jobConf.set(String.format(HBaseConstants.SALT_PREFIX, tableName), prefixList);
-          
+
           LOG.info(String.format("Setting SOURCE MODE (%s) to (%s)", String.format(HBaseConstants.SOURCE_MODE, tableName), sourceMode.toString()));
           LOG.info(String.format("Setting START KEY (%s) to (%s)", String.format(HBaseConstants.START_KEY, tableName), startKey));
           LOG.info(String.format("Setting STOP KEY (%s) to (%s)", String.format(HBaseConstants.STOP_KEY, tableName), stopKey));
           break;
-          
+
         case GET_LIST:
           jobConf.set( String.format(HBaseConstants.SOURCE_MODE, tableName), sourceMode.toString());
           jobConf.setStrings( String.format(HBaseConstants.KEY_LIST, tableName), keyList);
@@ -357,83 +357,83 @@ public class HBaseTap extends Tap<JobConf, RecordReader, OutputCollector> {
           // Added for Salting
           jobConf.setBoolean(String.format(HBaseConstants.USE_SALT, tableName), useSalt);
           jobConf.set(String.format(HBaseConstants.SALT_PREFIX, tableName), prefixList);
-          
+
           LOG.info(String.format("Setting SOURCE MODE (%s) to (%s)", String.format(HBaseConstants.SOURCE_MODE, tableName), sourceMode.toString()));
           LOG.info(String.format("Setting KEY LIST (%s) to key list length (%s)", String.format(HBaseConstants.KEY_LIST, tableName), keyList.length));
           break;
-          
+
         default:
           jobConf.set( String.format(HBaseConstants.SOURCE_MODE, tableName), sourceMode.toString());
 
           // Added for Salting
           jobConf.setBoolean(String.format(HBaseConstants.USE_SALT, tableName), useSalt);
           jobConf.set(String.format(HBaseConstants.SALT_PREFIX, tableName), prefixList);
-          
+
           LOG.info(String.format("Setting SOURCE MODE (%s) to (%s)", String.format(HBaseConstants.SOURCE_MODE, tableName), sourceMode.toString()));
           break;
       }
     }
   }
-  
+
   private static class SinkConfig implements Serializable {
 	  public String tableName = null;
 	  public boolean useSalt = false;
-	  
+
 	  public void configure(Configuration jobConf) {
           jobConf.setBoolean(String.format(HBaseConstants.USE_SALT, tableName), useSalt);
 	  }
   }
-  
+
   private ArrayList<SourceConfig> sourceConfigList = new ArrayList<SourceConfig>();
   private ArrayList<SinkConfig> sinkConfigList = new ArrayList<SinkConfig>();
-  
+
   public void setHBaseRangeParms(String startKey, String stopKey, boolean useSalt, String prefixList ) {
     SourceConfig sc = new SourceConfig();
-    
+
     sc.sourceMode = SourceMode.SCAN_RANGE;
     sc.tableName = tableName;
     sc.startKey = startKey;
     sc.stopKey = stopKey;
     sc.useSalt = useSalt;
     setPrefixList(sc, prefixList);
-    
+
     sourceConfigList.add(sc);
   }
 
   public void setHBaseListParms(String [] keyList, int versions, boolean useSalt, String prefixList ) {
     SourceConfig sc = new SourceConfig();
-    
+
     sc.sourceMode = SourceMode.GET_LIST;
     sc.tableName = tableName;
     sc.keyList = keyList;
     sc.versions = (versions < 1) ? 1 : versions;
     sc.useSalt = useSalt;
     setPrefixList(sc, prefixList);
-    
+
     sourceConfigList.add(sc);
   }
-  
+
   public void setHBaseScanAllParms(boolean useSalt, String prefixList) {
     SourceConfig sc = new SourceConfig();
-    
+
     sc.sourceMode = SourceMode.SCAN_ALL;
     sc.tableName = tableName;
     sc.useSalt = useSalt;
-    
+
     setPrefixList(sc, prefixList);
 
     sourceConfigList.add(sc);
   }
-  
+
   public void setUseSaltInSink( boolean useSalt ) {
     SinkConfig sc = new SinkConfig();
-    
+
     sc.tableName = tableName;
     sc.useSalt = useSalt;
-	
+
     sinkConfigList.add(sc);
   }
-  
+
   private void setPrefixList(SourceConfig sc, String prefixList ) {
 	  prefixList = (prefixList == null || prefixList.length() == 0) ? HBaseSalter.DEFAULT_PREFIX_LIST : prefixList;
 	  char[] prefixArray = prefixList.toCharArray();
